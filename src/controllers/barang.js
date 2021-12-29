@@ -1,12 +1,17 @@
 const {barang} = require("../../models")
 const {user} = require("../../models")
+const cloudinary = require("../../third-party/cloudinary")
 
 
 exports.addBarang =async(req,res) => {
     try{
-        console.log(req.files)
+        const result = await cloudinary.uploader.upload(req.files.photo[0].path, {
+            folder: "nutech_itegrasi_files",
+            use_filename: true,
+            unique_filename: false
+        })
         const data =  await barang.create({
-            photo:"http://localhost:2022/uploads/"+req.files.photo[0].filename,
+            photo : result.public_id,
             name:req.body.name,
             harga_jual:req.body.harga_jual,
             harga_beli: req.body.harga_beli,
@@ -29,7 +34,7 @@ exports.addBarang =async(req,res) => {
 }
 exports.getBarangs =async(req,res) => {
     try{
-       const data =  await barang.findAll({
+       let data =  await barang.findAll({
            include:
         {
             model : user,
@@ -42,11 +47,19 @@ exports.getBarangs =async(req,res) => {
                exclude:["createdAt","updatedAt"]
            }
        })
-        
+       
+       data = JSON.parse(JSON.stringify(data));
+       
+       const newData = data.map((item) => ({
+        ...item,
+        photo: cloudinary.url(item.photo),
+      }));
+  
+
         res.send({
             status: "succes",
             message :"Success to get Barangs",
-            data: data
+            data :newData
         })
     }
     
@@ -61,7 +74,7 @@ exports.getBarangs =async(req,res) => {
 exports.getBarang=async(req,res) => {
     const id = req.params.id;
     try{
-       const data =  await barang.findOne({
+       let data =  await barang.findOne({
                where: {id},
                include:
                 {
@@ -75,10 +88,16 @@ exports.getBarang=async(req,res) => {
                     exclude:["createdAt","updatedAt"]
                 }
                 })
+            data = JSON.parse(JSON.stringify(data));
+       
+            const newData = {
+                ...data,
+                photo :  cloudinary.url(data.photo)
+            }
             res.send({
-            status: "succes",
+            status : "succes",
             message :"Success to get Barang",
-            data:data,
+            data : newData,
         })
     }
     catch(error){
@@ -93,8 +112,13 @@ exports.getBarang=async(req,res) => {
 exports.updateBarang =async(req,res) => {
     const id = req.params.id;
     try{
+        const result = await cloudinary.uploader.upload(req.files.photo[0].path, {
+            folder: "nutech_itegrasi_files",
+            use_filename: true,
+            unique_filename: false
+        })
         await barang.update({
-            photo:"http://localhost:2022/uploads/"+req.files.photo[0].filename,
+            photo : result.public_id,
             name:req.body.name,
             harga_jual:req.body.harga_jual,
             harga_beli: req.body.harga_beli,
